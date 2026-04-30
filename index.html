@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResearchRadar - 学术前沿追踪报告 (演示版)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f7fa; color: #333; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 40px; }
+        .header h1 { font-size: 28px; margin-bottom: 8px; }
+        .header p { opacity: 0.9; font-size: 14px; }
+        .query-badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 13px; margin-top: 8px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .stats { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat-card { background: white; border-radius: 10px; padding: 20px; flex: 1; min-width: 150px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .stat-card .num { font-size: 32px; font-weight: bold; color: #667eea; }
+        .stat-card .label { font-size: 13px; color: #888; margin-top: 4px; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
+        .tab { padding: 10px 20px; cursor: pointer; border: none; background: none; font-size: 15px; color: #888; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+        .tab.active { color: #667eea; border-bottom-color: #667eea; font-weight: 600; }
+        .tab:hover { color: #667eea; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .paper-card { background: white; border-radius: 10px; padding: 20px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: transform 0.2s, box-shadow 0.2s; }
+        .paper-card:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .paper-title { font-size: 17px; font-weight: 600; color: #222; margin-bottom: 8px; line-height: 1.4; }
+        .paper-title a { color: inherit; text-decoration: none; }
+        .paper-title a:hover { color: #667eea; }
+        .paper-summary { font-size: 14px; color: #555; line-height: 1.6; margin-bottom: 8px; }
+        .paper-summary-zh { font-size: 13px; color: #444; line-height: 1.6; margin-bottom: 8px; padding: 10px; background: #f0f4ff; border-radius: 6px; }
+        .paper-meta { display: flex; gap: 15px; font-size: 12px; color: #999; flex-wrap: wrap; align-items: center; }
+        .paper-meta .score { color: #f59e0b; font-weight: 600; }
+        .hot-topics { display: flex; flex-wrap: wrap; gap: 8px; }
+        .topic-tag { background: white; border: 1px solid #e0e0e0; padding: 6px 14px; border-radius: 20px; font-size: 13px; display: flex; align-items: center; gap: 6px; transition: all 0.2s; cursor: default; }
+        .topic-tag:hover { border-color: #667eea; color: #667eea; }
+        .topic-tag .count { background: #667eea; color: white; border-radius: 10px; padding: 1px 7px; font-size: 11px; }
+        .cluster-section { margin-bottom: 25px; }
+        .cluster-header { font-size: 18px; font-weight: 600; color: #667eea; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #f0f0f0; }
+        .search-box { width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 15px; transition: border-color 0.2s; }
+        .search-box:focus { outline: none; border-color: #667eea; }
+        .no-data { text-align: center; padding: 60px 20px; color: #aaa; font-size: 15px; }
+        .demo-banner { background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 12px 20px; margin-bottom: 20px; color: #856404; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔭 ResearchRadar</h1>
+        <p>AI 领域学术前沿追踪报告（演示版）</p>
+        <span class="query-badge">查询: large language model</span>
+    </div>
+
+    <div class="container">
+        <div class="demo-banner">
+            ⚠️ 这是演示数据。实际运行时将抓取真实 arXiv 论文。
+        </div>
+
+        <div class="stats">
+            <div class="stat-card"><div class="num">50</div><div class="label">论文总数</div></div>
+            <div class="stat-card"><div class="num">0.71</div><div class="label">平均评分</div></div>
+            <div class="stat-card"><div class="num">LLM</div><div class="label">最热关键词</div></div>
+            <div class="stat-card"><div class="num">2026-04-28</div><div class="label">最新发表</div></div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab(event, 'papers')">📄 论文列表</button>
+            <button class="tab" onclick="switchTab(event, 'topics')">🔥 热点话题</button>
+            <button class="tab" onclick="switchTab(event, 'clusters')">🗂️ 话题聚类</button>
+        </div>
+
+        <!-- 论文列表 -->
+        <div id="tab-papers" class="tab-content active">
+            <input type="text" class="search-box" id="search-box" placeholder="🔍 搜索论文标题或摘要..." oninput="filterPapers()">
+            <div id="papers-list"></div>
+        </div>
+
+        <!-- 热点话题 -->
+        <div id="tab-topics" class="tab-content">
+            <div class="hot-topics" id="topics-list"></div>
+        </div>
+
+        <!-- 话题聚类 -->
+        <div id="tab-clusters" class="tab-content">
+            <div id="clusters-list"></div>
+        </div>
+    </div>
+
+    <script>
+        var PAPERS = [
+            {id:'2301.00001',title:'LLaMA-Adapter: Efficient Fine-tuning of Language Models with Zero-init Attention',summary:'We present LLaMA-Adapter, a lightweight adaptation method for efficient fine-tuning of LLaMA into an instruction-following model. Our approach inserts learnable adaptation prompts into the input space and adopts zero-initialized attention mechanisms to stabilize the training process.',summary_zh:'我们提出了 LLaMA-Adapter，一种用于高效微调 LLaMA 的轻量级适配方法，通过可学习的适配提示和零初始化注意力机制实现稳定训练。',published:'2026-04-18',authors:['Renrui Zhang','Jiaming Han','Aojun Zhou','Xiangfei Hu'],pdf_url:'https://arxiv.org/pdf/2301.00001',score:0.952},
+            {id:'2302.00002',title:'GPT-4 Technical Report',summary:'We report the development of GPT-4, a large-scale, multimodal model capable of processing image and text inputs and producing text outputs. While less capable than humans in many real-world scenarios, GPT-4 exhibits human-level performance on various professional and academic benchmarks.',summary_zh:'我们报告了 GPT-4 的开发，这是一个大规模多模态模型，能够处理图像和文本输入并生成文本输出，在多项专业和学术基准中表现出人类水平。',published:'2026-04-15',authors:['OpenAI'],pdf_url:'https://arxiv.org/pdf/2302.00002',score:0.934},
+            {id:'2303.00003',title:'Visual ChatGPT: Talking, Drawing and Editing with Visual Foundation Models',summary:'We propose Visual ChatGPT, a system that incorporates different Visual Foundation Models to enable ChatGPT to send and receive images during conversations. It bridges the gap between language models and visual models.',summary_zh:'我们提出了 Visual ChatGPT，该系统整合不同的视觉基础模型，使 ChatGPT 能够在对话中收发图像，弥合语言模型与视觉模型之间的鸿沟。',published:'2026-04-12',authors:['Chenfei Liao','Daiyi Peng','Ligeng Zhu'],pdf_url:'https://arxiv.org/pdf/2303.00003',score:0.918},
+            {id:'2304.00004',title:'Diffusion Models Beat GANs on Image Synthesis',summary:'We show that diffusion models can achieve image sample quality superior to the current state-of-the-art generative models. We achieve this by improving architectures and diffusion techniques tailored for high-resolution image synthesis.',summary_zh:'我们展示了扩散模型在图像合成质量上可以超越当前最先进的生成模型，通过改进架构和针对高分辨率图像合成的扩散技术实现。',published:'2026-04-10',authors:['Prafulla Dhariwal','Alex Nichol'],pdf_url:'https://arxiv.org/pdf/2304.00004',score:0.901},
+            {id:'2305.00005',title:'Instruction Tuning with GPT-4',summary:'Instruction tuning is a crucial step in aligning language models with user intent. We explore the use of GPT-4 generated instruction-following data to fine-tune open-source language models, achieving strong performance on various benchmarks.',summary_zh:'指令微调是使语言模型与用户意图对齐的关键步骤。我们探索使用 GPT-4 生成的指令跟随数据来微调开源语言模型，在多项基准上取得强劲表现。',published:'2026-04-08',authors:['Baolin Peng','Chunyuan Li','Pengcheng He'],pdf_url:'https://arxiv.org/pdf/2305.00005',score:0.887},
+            {id:'2306.00006',title:'LoRA: Low-Rank Adaptation of Large Language Models',summary:'We propose LoRA, an efficient adaptation strategy that freezes the pre-trained model weights and injects trainable rank decomposition matrices into each layer of the Transformer architecture, greatly reducing the number of trainable parameters.',summary_zh:'我们提出了 LoRA，一种高效适配策略，通过冻结预训练模型权重并向 Transformer 每一层注入可训练的秩分解矩阵，大幅减少可训练参数数量。',published:'2026-04-05',authors:['Edward Hu','Yelong Shen','Phillip Wallis'],pdf_url:'https://arxiv.org/pdf/2306.00006',score:0.872},
+            {id:'2307.00007',title:'Multimodal Foundation Models: From Vision to Language and Beyond',summary:'We survey recent advances in multimodal foundation models that integrate vision, language, and other modalities. We discuss architectural innovations, training strategies, and emerging capabilities of these models.',summary_zh:'我们综述了整合视觉、语言和其他模态的多模态基础模型的最新进展，讨论了架构创新、训练策略和这些模型的新兴能力。',published:'2026-04-03',authors:['Jiasen Lu','Christopher Clark','Rowan Zellers'],pdf_url:'https://arxiv.org/pdf/2307.00007',score:0.856},
+            {id:'2308.00008',title:'Reinforcement Learning from Human Feedback: A Survey',summary:'We provide a comprehensive survey of Reinforcement Learning from Human Feedback (RLHF), a technique that has been instrumental in the success of recent large language models such as ChatGPT and GPT-4.',summary_zh:'我们对人类反馈强化学习（RLHF）进行了全面综述，该技术对 ChatGPT 和 GPT-4 等大型语言模型的成功起到了关键作用。',published:'2026-03-30',authors:['Hao Liu','Caiming Xiong','James Liu'],pdf_url:'https://arxiv.org/pdf/2308.00008',score:0.841},
+            {id:'2309.00009',title:'Efficient Transformers: A Survey',summary:'We survey efficient Transformer models that address the quadratic complexity of the standard attention mechanism. We categorize approaches into fixed patterns, learnable patterns, and low-rank approximation methods.',summary_zh:'我们综述了解决标准注意力机制二次复杂性的高效 Transformer 模型，将方法分类为固定模式、可学习模式和低秩近似方法。',published:'2026-03-28',authors:['Yi Tay','Mostafa Dehghani','Samira Abnar'],pdf_url:'https://arxiv.org/pdf/2309.00009',score:0.825},
+            {id:'2310.00010',title:'Prompt Engineering for Large Language Models: A Guide',summary:'We present a comprehensive guide to prompt engineering for large language models. We discuss principles, techniques, and best practices for designing effective prompts that elicit desired responses from models like GPT-4 and Claude.',summary_zh:'我们提出了大型语言模型提示工程的综合指南，讨论了为 GPT-4 和 Claude 等模型设计有效提示以引出期望响应的原则、技术和最佳实践。',published:'2026-03-25',authors:['Lilian Weng','Chenguang Zhu','Shangbang Long'],pdf_url:'https://arxiv.org/pdf/2310.00010',score:0.809}
+        ];
+
+        var TOPICS = [
+            {word:'LLM',count:38},{word:'diffusion',count:31},{word:'multimodal',count:27},{word:'instruction',count:24},
+            {word:'transformer',count:22},{word:'fine-tuning',count:19},{word:'RLHF',count:17},{word:'prompt',count:16},
+            {word:'vision',count:15},{word:'GPT',count:14},{word:'image',count:13},{word:'language model',count:12},
+            {word:'attention',count:11},{word:'synthesis',count:10},{word:'alignment',count:9},{word:'benchmark',count:8},
+            {word:'zero-shot',count:7},{word:'few-shot',count:7},{word:'reasoning',count:6},{word:'embedding',count:6}
+        ];
+
+        var CLUSTERS = {
+            'LLM': [
+                {title:'LLaMA-Adapter: Efficient Fine-tuning of Language Models with Zero-init Attention',score:0.952,pdf_url:'https://arxiv.org/pdf/2301.00001'},
+                {title:'GPT-4 Technical Report',score:0.934,pdf_url:'https://arxiv.org/pdf/2302.00002'},
+                {title:'Instruction Tuning with GPT-4',score:0.887,pdf_url:'https://arxiv.org/pdf/2305.00005'}
+            ],
+            'diffusion': [
+                {title:'Diffusion Models Beat GANs on Image Synthesis',score:0.901,pdf_url:'https://arxiv.org/pdf/2304.00004'},
+                {title:'Score-Based Diffusion Models: A Unified Framework',score:0.78,pdf_url:''}
+            ],
+            'multimodal': [
+                {title:'Visual ChatGPT: Talking, Drawing and Editing with Visual Foundation Models',score:0.918,pdf_url:'https://arxiv.org/pdf/2303.00003'},
+                {title:'Multimodal Foundation Models: From Vision to Language and Beyond',score:0.856,pdf_url:'https://arxiv.org/pdf/2307.00007'}
+            ],
+            'instruction': [
+                {title:'Instruction Tuning with GPT-4',score:0.887,pdf_url:'https://arxiv.org/pdf/2305.00005'},
+                {title:'Instruction Tuning for Code Generation',score:0.76,pdf_url:''}
+            ],
+            'transformer': [
+                {title:'Efficient Transformers: A Survey',score:0.825,pdf_url:'https://arxiv.org/pdf/2309.00009'},
+                {title:'LoRA: Low-Rank Adaptation of Large Language Models',score:0.872,pdf_url:'https://arxiv.org/pdf/2306.00006'}
+            ]
+        };
+
+        // Tab 切换
+        function switchTab(evt, name) {
+            document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+            evt.target.classList.add('active');
+            document.getElementById('tab-' + name).classList.add('active');
+        }
+
+        // 渲染论文列表
+        function renderPapers(list) {
+            var container = document.getElementById('papers-list');
+            if (!list || list.length === 0) {
+                container.innerHTML = '<div class="no-data">暂无数据</div>';
+                return;
+            }
+            container.innerHTML = list.map(function(p) {
+                var authors = p.authors.slice(0,3).join(', ') + (p.authors.length > 3 ? ' 等' : '');
+                var zhHtml = p.summary_zh ? '<div class="paper-summary-zh">🇨🇳 ' + escapeHtml(p.summary_zh) + '</div>' : '';
+                return '<div class="paper-card">' +
+                    '<div class="paper-title"><a href="' + p.pdf_url + '" target="_blank">' + escapeHtml(p.title) + '</a></div>' +
+                    '<div class="paper-summary">' + escapeHtml(p.summary.substring(0,300)) + '...</div>' +
+                    zhHtml +
+                    '<div class="paper-meta">' +
+                    '<span>📅 ' + p.published + '</span>' +
+                    '<span>👤 ' + escapeHtml(authors) + '</span>' +
+                    '<span class="score">⭐ ' + p.score.toFixed(3) + '</span>' +
+                    '</div></div>';
+            }).join('');
+        }
+
+        function escapeHtml(str) {
+            var div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // 搜索过滤
+        function filterPapers() {
+            var kw = document.getElementById('search-box').value.toLowerCase();
+            var filtered = PAPERS.filter(function(p) {
+                return p.title.toLowerCase().indexOf(kw) !== -1 || p.summary.toLowerCase().indexOf(kw) !== -1;
+            });
+            renderPapers(filtered);
+        }
+
+        // 渲染热点话题
+        function renderTopics() {
+            var container = document.getElementById('topics-list');
+            container.innerHTML = TOPICS.map(function(t) {
+                return '<div class="topic-tag">' + t.word + ' <span class="count">' + t.count + '</span></div>';
+            }).join('');
+        }
+
+        // 渲染聚类
+        function renderClusters() {
+            var container = document.getElementById('clusters-list');
+            var keys = Object.keys(CLUSTERS);
+            container.innerHTML = keys.map(function(kw) {
+                var papers = CLUSTERS[kw];
+                var items = papers.map(function(p) {
+                    return '<div style="padding:8px 0; border-bottom:1px solid #f0f0f0;">' +
+                        '<a href="' + p.pdf_url + '" target="_blank" style="color:#333; text-decoration:none; font-size:14px;">' + escapeHtml(p.title.substring(0,80)) + '</a>' +
+                        '<span style="color:#f59e0b; font-size:12px; margin-left:8px;">⭐' + p.score.toFixed(3) + '</span></div>';
+                }).join('');
+                return '<div class="cluster-section"><div class="cluster-header">🏷️ ' + kw + ' (' + papers.length + ' 篇)</div>' + items + '</div>';
+            }).join('');
+        }
+
+        // 初始化
+        renderPapers(PAPERS);
+        renderTopics();
+        renderClusters();
+    </script>
+</body>
+</html>
